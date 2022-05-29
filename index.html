@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Charting</title>
+    <style>
+      html {
+        height: 100%;
+        background: radial-gradient(
+          ellipse at bottom,
+          #1b2735 0%,
+          #090a0f 100%
+        );
+      }
+
+      .shadow {
+        -webkit-box-shadow: 15px 17px 11px -12px rgba(168, 168, 168, 1);
+        -moz-box-shadow: 15px 17px 11px -12px rgba(168, 168, 168, 1);
+        box-shadow: 15px 17px 11px -12px rgba(168, 168, 168, 1);
+      }
+
+      #div {
+        border-radius: 5px;
+        margin-left: 5%;
+        width: 90%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 3%;
+        padding: 20px;
+      }
+
+      .div {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+      }
+      .div_labels {
+        margin-left: 2.5%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .file {
+        position: absolute;
+        top: 0;
+      }
+      .file label {
+        background: #39d2b4;
+        padding: 5px 20px;
+        color: #fff;
+        font-weight: bold;
+        font-size: 0.9em;
+        transition: all 0.4s;
+        border-radius: 1px;
+      }
+      .file input {
+        position: absolute;
+        display: inline-block;
+        left: 0;
+        top: 0;
+        opacity: 0.01;
+        cursor: pointer;
+      }
+      .file input:hover + label,
+      .file input:focus + label {
+        background: #34495e;
+        color: #39d2b4;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="div">
+      <div class="div">
+        <div class="div_labels" style="visibility: hidden">
+          <label>Fan speed %</label>
+          <label style="text-align: end;">Temperature</label>
+        </div>
+        <canvas
+          id="scatterChart"
+          style="width: 50%; max-width: 600px; padding-bottom: 10px"
+        ></canvas>
+        <div class="div_labels" style="visibility: hidden">
+          <label>Angle degrees</label>
+          <label style="text-align: end;" >Light %</label>
+        </div>
+
+        <canvas
+          id="lineChart"
+          style="width: 50%; max-width: 600px; padding-bottom: 10px"
+        ></canvas>
+      </div>
+      <div class="div">
+        <div class="div_labels" style="visibility: hidden">
+          <label>y</label>
+          <label>x</label>
+        </div>
+        <canvas
+          id="doughnutChart"
+          style="width: 80%; max-width: 700px; padding-bottom: 10px"
+        ></canvas>
+        <div class="div_labels" style="visibility: hidden">
+          <label>y</label>
+          <label>x</label>
+        </div>
+        <canvas
+          id="barChart"
+          style="width: 80%; max-width: 700px; padding-bottom: 10px"
+        ></canvas>
+      </div>
+
+      <p class="file">
+        <input id="file" name="file" type="file" onchange="readFile(this)" />
+        <label for="file">Upload your data.txt</label>
+      </p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+
+    <script>
+      function readFile(input) {
+        let file = input.files[0];
+        let reader = new FileReader();
+        let div_labels = document.getElementsByClassName("div_labels");
+        let div = document.getElementById("div");
+        reader.readAsText(file);
+
+        reader.onload = function () {
+          let array = "[" + reader.result + "]";
+          array = array.replaceAll(`'`, `"`);
+          array = array.replace(/(\r\n|\n|\r)/gm, "");
+          array = array.replace(/,]*$/, "]");
+          scatter_array = array;
+          scatter_array = scatter_array.replaceAll("Temp", "x");
+          scatter_array = scatter_array.replaceAll("Fan", "y");
+          line_array = array;
+          line_array = line_array.replaceAll("Sun", "x");
+          line_array = line_array.replaceAll("Ang", "y");
+          // console.log(line_array);
+
+          new Chart("scatterChart", {
+            type: "scatter",
+
+            data: {
+              datasets: [
+                {
+                  label: "Fan speed based on temperature",
+                  pointRadius: 4,
+                  pointBackgroundColor: "rgba(0,0,255,1)",
+                  data: JSON.parse(scatter_array),
+                },
+              ],
+              
+          
+            },
+          });
+
+          new Chart("lineChart", {
+            type: "scatter",
+
+            data: {
+              datasets: [
+                {
+                  label: "Window angle based on light",
+                  pointRadius: 4,
+                  pointBackgroundColor: "rgba(0,0,255,1)",
+                  data: JSON.parse(line_array),
+                },
+              ],
+              // labels: ["aasda", "bddddd"],
+            },
+          });
+          let low_temp = 0;
+          let mid_temp = 0;
+          let high_temp = 0;
+
+          JSON.parse(array).forEach((element) => {
+            if (element.Temp < 20) {
+              low_temp++;
+            } else if (element.Temp > 20 && element.Temp < 30) {
+              mid_temp++;
+            } else {
+              high_temp++;
+            }
+          });
+
+          let temp = new Chart("doughnutChart", {
+            type: "doughnut",
+
+            data: {
+              labels: ["High Temp", "Low Temp", "Mid Temp"],
+              datasets: [
+                {
+                  label: "Temperatures",
+                  data: [high_temp, low_temp, mid_temp],
+                  backgroundColor: [
+                    "rgb(255, 99, 132)",
+                    "rgb(54, 162, 235)",
+                    "rgb(255, 205, 86)",
+                  ],
+                  hoverOffset: 4,
+                },
+              ],
+            },
+          });
+          let low_sun = 0;
+          let mid_sun = 0;
+          let high_sun = 0;
+
+          JSON.parse(array).forEach((element) => {
+            if (element.Sun < 25) {
+              low_sun++;
+            } else if (element.Temp >= 25 && element.Temp <= 70) {
+              mid_sun++;
+            } else {
+              high_sun++;
+            }
+          });
+
+          new Chart("barChart", {
+            type: "bar",
+
+            data: {
+              labels: ["below 25%", "25%-70%", "above 70%"],
+              datasets: [
+                {
+                  label: "Sunlight",
+                  data: [low_sun, mid_sun, high_sun],
+                  backgroundColor: [
+                    "rgb(54, 162, 235)",
+                    "rgb(255, 205, 86)",
+                    "rgb(255, 99, 132)",
+                  ],
+                  hoverOffset: 4,
+                },
+              ],
+            },
+          });
+          div.setAttribute("style", "background-color:#dbdbdb;");
+          div.setAttribute("class", "shadow");
+          div_labels[0].setAttribute("style", "visibility: visible;");
+          div_labels[1].setAttribute("style", "visibility: visible;");
+        };
+
+        reader.onerror = function () {
+          alert(reader.error);
+        };
+      }
+    </script>
+  </body>
+</html>
